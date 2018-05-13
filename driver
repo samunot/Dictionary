@@ -1,0 +1,186 @@
+import java.io.*;
+import java.util.*;
+
+/* This class is a blueprint of every word in a dictionary.
+It has three datamembers: word, meaning and synonyms */
+class Vertex
+{
+    private String word;
+
+    public String getWord() {
+        return word;
+    }
+
+    public void setWord(String word) {
+        this.word = word;
+    }
+
+    public String getMeaning() {
+        return meaning;
+    }
+
+    public void setMeaning(String meaning) {
+        this.meaning = meaning;
+    }
+
+    private String meaning;
+
+    public ArrayList<String> getNeighbours() {
+        return neighbours;
+    }
+
+    public void setNeighbours(ArrayList<String> neighbours) {
+        this.neighbours = neighbours;
+    }
+
+    public void addNeighbour(String word)
+    {
+        neighbours.add(word);
+    }
+
+    private ArrayList<String> neighbours;
+
+    Vertex(String word, String meaning)
+    {
+        this.word = word;
+        this.meaning = meaning;
+        this.neighbours = new ArrayList<String>();
+    }
+}
+
+class Dictionary
+{
+    private HashMap<String, Vertex> wordDict;
+
+    Dictionary()
+    {
+        /* wordDict is a hashmap which is storing all the objects. Hashmap will give us O(1) time for lookup. 
+We are storing in this form word:object(word,meaning,synonyms) */
+        this.wordDict = new HashMap<String, Vertex>();
+    }
+
+// This function is simply adding words
+    public void addWord(String word, String meaning)
+    {
+        this.wordDict.put(word, new Vertex(word, meaning));
+    }
+
+// This function is adding synonyms in each others' synonyms list
+    public void addSynonym(String word1, String word2)
+    {
+        Vertex v1 = wordDict.get(word1);
+        Vertex v2 = wordDict.get(word2);
+
+        v1.addNeighbour(word2);
+        v2.addNeighbour(word1);
+    }
+
+// Simple lookup in hashmap
+    public String getMeaning(String word)
+    {
+        try
+        {
+            return wordDict.get(word).getMeaning();
+        }
+        catch (NullPointerException ex)
+        {
+            return "Word doesn't exist";
+        }
+    }
+
+// Function is getting synonyms of the given word by applying DFS on each word in synonym list.
+/* Explaination: Assuming k<<n, this function would have worst case complexity of O(k) where k: number of synonyms and n: total number of words 
+(atmost k edges in the graph). Although an O(1) lookup can be achieved by maintaining a complete synonym list for each word, my approach  
+improves space complexity by avoiding maintaining a very huge dictionary. */
+    public HashSet<String> getSynonyms(String word)
+    {
+        try {
+            return dfs(word);
+        }
+        catch (NullPointerException ex)
+        {
+            System.out.println(word+":Word doesn't exist");
+            return null;
+        }
+    }
+
+    private HashSet<String> dfs(String word)
+    {
+        HashSet<String> visited = new HashSet<String>();
+        Stack<Vertex> st = new Stack<Vertex>();
+        st.push(wordDict.get(word));
+
+        while (!st.isEmpty())
+        {
+            Vertex cur = st.pop();
+            if (visited.contains(cur.getWord()))
+            {
+                continue;
+            }
+            ArrayList<String> neighbours = cur.getNeighbours();
+
+            for (int i=0;i<neighbours.size();i++)
+            {
+                st.push(wordDict.get(neighbours.get(i)));
+            }
+
+            visited.add(cur.getWord());
+        }
+
+        visited.remove(word);
+        return visited;
+    }
+
+
+}
+
+
+
+public class Driver {
+    public static void main(String args[]) throws IOException
+    {
+        Dictionary dictionary = new Dictionary();
+
+        File file = new File(args[0]);
+        BufferedReader bf = new BufferedReader(new FileReader(file));
+
+        String line;
+        while ((line = bf.readLine()) != null)
+        {
+            String arr[] = line.split(":");
+            switch (arr[0])
+            {
+                case "addWord":
+                    dictionary.addWord(arr[1], arr[2]);
+                    break;
+                case "addSynonym":
+                    dictionary.addSynonym(arr[1], arr[2]);
+                    break;
+                case "lookupWord":
+                    System.out.println(arr[1]+":"+dictionary.getMeaning(arr[1]));
+                    break;
+                case "lookupSynonyms":
+                    HashSet<String> synonyms = dictionary.getSynonyms(arr[1]);
+                    if (synonyms!=null) {
+                        StringBuilder str = new StringBuilder(arr[1] + ":");
+                        Iterator<String> itSet = synonyms.iterator();
+                        while (itSet.hasNext()) {
+                            str.append(itSet.next());
+                            str.append(",");
+                        }
+                        String res;
+                        if (!synonyms.isEmpty())
+                            res = str.substring(0, str.length() - 1);
+                        else
+                            res = str.toString();
+
+                        System.out.println(res);
+                    }
+                    break;
+                default:
+                    System.out.println("Invalid Operation");
+                    break;
+            }
+        }
+    }
+}
